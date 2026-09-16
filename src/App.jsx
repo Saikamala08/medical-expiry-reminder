@@ -1666,6 +1666,185 @@ function PageContainer({
    MAIN APP
 ========================================================= */
 
+/* =========================================================
+   LOGIN PAGE
+========================================================= */
+
+function LoginPage({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+
+    setMessage("Checking login details...");
+    setSuccess(false);
+
+    // Temporary frontend login
+    if (email === "admin@gmail.com" && password === "admin123") {
+      setMessage("Login successful!");
+      setSuccess(true);
+
+      localStorage.setItem("medExpiryLoggedIn", "true");
+      localStorage.setItem("medExpiryUser", email);
+
+      setTimeout(() => {
+        onLogin();
+      }, 500);
+    } else {
+      setMessage("Invalid email or password");
+      setSuccess(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+
+      <div className="login-container">
+
+        <div className="welcome-section">
+
+          <div className="logo-circle">
+            💊
+          </div>
+
+          <h1>Medical Expiry</h1>
+          <h1>Reminder System</h1>
+
+          <p>
+            Manage medicines, track expiry dates,
+            and reduce unnecessary medical wastage.
+          </p>
+
+          <div className="login-features">
+
+            <div>
+              <span>✓</span>
+              Track medicine expiry dates
+            </div>
+
+            <div>
+              <span>✓</span>
+              Get timely notifications
+            </div>
+
+            <div>
+              <span>✓</span>
+              Reduce medicine wastage
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="login-section">
+
+          <div className="login-card">
+
+            <h2>Welcome Back</h2>
+
+            <p className="login-subtitle">
+              Login to manage your medicines
+            </p>
+
+            <form onSubmit={handleLogin}>
+
+              <div className="input-group">
+
+                <label>Email</label>
+
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+
+              </div>
+
+              <div className="input-group">
+
+                <label>Password</label>
+
+                <div className="password-container">
+
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    className="show-password"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+
+                </div>
+
+              </div>
+
+              <div className="login-options">
+
+                <label>
+                  <input type="checkbox" />
+                  Remember me
+                </label>
+
+                <button
+                  type="button"
+                  className="forgot-password"
+                  onClick={() =>
+                    alert(
+                      "Password recovery will be connected to the backend later."
+                    )
+                  }
+                >
+                  Forgot Password?
+                </button>
+
+              </div>
+
+              <button
+                type="submit"
+                className="login-button"
+              >
+                Login
+              </button>
+
+            </form>
+
+            {message && (
+              <p
+                className={`login-message ${
+                  success ? "success-message" : "error-message"
+                }`}
+              >
+                {message}
+              </p>
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+
 function App() {
 
   const [loggedIn, setLoggedIn] = useState(false);
