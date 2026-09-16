@@ -95,33 +95,6 @@ function formatDate(date) {
 }
 
 /* =========================================================
-   LOGIN PAGE
-========================================================= */
-
-const handleLogin = (e) => {
-  e.preventDefault();
-
-  setMessage("Checking login details...");
-  setSuccess(false);
-
-  // Temporary frontend login
-  if (email === "admin@gmail.com" && password === "admin123") {
-    setMessage("Login successful!");
-    setSuccess(true);
-
-    localStorage.setItem("medExpiryLoggedIn", "true");
-    localStorage.setItem("medExpiryUser", email);
-
-    setTimeout(() => {
-      onLogin();
-    }, 500);
-  } else {
-    setMessage("Invalid email or password");
-    setSuccess(false);
-  }
-};
-
-/* =========================================================
    SIDEBAR
 ========================================================= */
 
