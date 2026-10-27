@@ -1,52 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
+
 import "./App.css";
 
-/* =========================================================
-   INITIAL DEMO DATA
-========================================================= */
+const API_BASE_URL = "http://127.0.0.1:8000";
 
-const initialMedicines = [
-  {
-    id: 1,
-    name: "Paracetamol",
-    batch: "PCM2026A",
-    category: "Tablet",
-    quantity: 50,
-    manufacturingDate: "2026-01-10",
-    expiryDate: "2026-10-20",
-    notes: "Store in a cool and dry place.",
-  },
-  {
-    id: 2,
-    name: "Amoxicillin",
-    batch: "AMX2026B",
-    category: "Capsule",
-    quantity: 30,
-    manufacturingDate: "2026-02-15",
-    expiryDate: "2027-01-15",
-    notes: "Keep away from direct sunlight.",
-  },
-  {
-    id: 3,
-    name: "Ibuprofen",
-    batch: "IBU2026C",
-    category: "Tablet",
-    quantity: 20,
-    manufacturingDate: "2025-09-02",
-    expiryDate: "2026-10-02",
-    notes: "",
-  },
-  {
-    id: 4,
-    name: "Cough Syrup",
-    batch: "CS2026D",
-    category: "Syrup",
-    quantity: 15,
-    manufacturingDate: "2026-03-01",
-    expiryDate: "2026-09-25",
-    notes: "Refrigerate after opening.",
-  },
-];
+// Convert PostgreSQL/FastAPI field names to the names used by the existing UI.
+function fromApiMedicine(medicine) {
+  return {
+    id: medicine.id,
+    name: medicine.name,
+    batch: medicine.batch_number ?? "",
+    category: medicine.category ?? "",
+    quantity: medicine.quantity,
+    manufacturingDate: medicine.manufacturing_date ?? "",
+    expiryDate: medicine.expiry_date ?? "",
+    notes: medicine.notes ?? "",
+  };
+}
+
+// Convert the existing form fields to the API request format.
+function toApiMedicine(medicine) {
+  return {
+    name: medicine.name.trim(),
+    category: medicine.category || null,
+    batch_number: medicine.batch?.trim() || null,
+    quantity: Number(medicine.quantity),
+    manufacturing_date: medicine.manufacturingDate || null,
+    expiry_date: medicine.expiryDate,
+    notes: medicine.notes?.trim() || null,
+  };
+}
 
 /* =========================================================
    HELPER FUNCTIONS
@@ -800,7 +783,7 @@ function AddMedicinePage({
 
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault();
 
@@ -827,12 +810,14 @@ function AddMedicinePage({
       return;
     }
 
-    onSave({
+    const saved = await onSave({
       ...form,
       quantity: Number(form.quantity),
     });
 
-    setPage("medicines");
+    if (saved) {
+      setPage("medicines");
+    }
   };
 
   const handleOCR = () => {
@@ -1838,30 +1823,45 @@ function App() {
       ) === "true"
     );
 
-  const [medicines, setMedicines] =
-    useState(() => {
+  const [medicines, setMedicines] = useState([]);
+  const [loadingMedicines, setLoadingMedicines] = useState(true);
+  const [apiError, setApiError] = useState("");
 
-      const saved =
-        localStorage.getItem(
-          "medExpiryMedicines"
-        );
-
-      return saved
-        ? JSON.parse(saved)
-        : initialMedicines;
-
-    });
-
-  /* Save medicines to browser */
-
+  // Load the real medicine records from PostgreSQL through FastAPI.
   useEffect(() => {
+    let isMounted = true;
 
-    localStorage.setItem(
-      "medExpiryMedicines",
-      JSON.stringify(medicines)
-    );
+    async function loadMedicines() {
+      try {
+        setLoadingMedicines(true);
+        const response = await fetch(`${API_BASE_URL}/medicines`);
 
-  }, [medicines]);
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setMedicines(data.map(fromApiMedicine));
+          setApiError("");
+        }
+      } catch (error) {
+        if (isMounted) {
+          setApiError(
+            "Could not load medicines from the backend. Make sure FastAPI is running and check the backend terminal."
+          );
+        }
+      } finally {
+        if (isMounted) setLoadingMedicines(false);
+      }
+    }
+
+    loadMedicines();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /* Save dark mode */
 
@@ -1922,36 +1922,46 @@ function App() {
 
   }
 
-  /* Save / update medicine */
+  /* Save a medicine through FastAPI */
+  const handleSaveMedicine = async (medicine) => {
+    const isEditing = Boolean(medicine.id);
+    const url = isEditing
+      ? `${API_BASE_URL}/medicines/${medicine.id}`
+      : `${API_BASE_URL}/medicines`;
 
-  const handleSaveMedicine = (medicine) => {
+    try {
+      const response = await fetch(url, {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(toApiMedicine(medicine)),
+      });
 
-    if (medicine.id) {
+      const result = await response.json();
 
-      setMedicines((previous) =>
-        previous.map((item) =>
-          item.id === medicine.id
-            ? medicine
-            : item
-        )
-      );
+      if (!response.ok) {
+        throw new Error(
+          result.detail || `Request failed with status ${response.status}`
+        );
+      }
 
-    } else {
+      const savedMedicine = fromApiMedicine(result);
 
-      const newMedicine = {
-        ...medicine,
-        id: Date.now(),
-      };
+      setMedicines((previous) => {
+        if (isEditing) {
+          return previous.map((item) =>
+            item.id === savedMedicine.id ? savedMedicine : item
+          );
+        }
+        return [...previous, savedMedicine];
+      });
 
-      setMedicines((previous) => [
-        ...previous,
-        newMedicine,
-      ]);
-
+      setApiError("");
+      setEditingMedicine(null);
+      return true;
+    } catch (error) {
+      alert(`Could not save medicine: ${error.message}`);
+      return false;
     }
-
-    setEditingMedicine(null);
-
   };
 
   /* Edit */
@@ -1963,28 +1973,31 @@ function App() {
 
   };
 
-  /* Delete */
+  /* Delete a medicine through FastAPI */
+  const handleDelete = async (id) => {
+    const medicine = medicines.find((item) => item.id === id);
 
-  const handleDelete = (id) => {
-
-    const medicine =
-      medicines.find(
-        (item) => item.id === id
-      );
-
-    const confirmDelete =
-      window.confirm(
-        `Are you sure you want to delete ${medicine?.name}?`
-      );
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${medicine?.name}?`
+    );
 
     if (!confirmDelete) return;
 
-    setMedicines((previous) =>
-      previous.filter(
-        (item) => item.id !== id
-      )
-    );
+    try {
+      const response = await fetch(`${API_BASE_URL}/medicines/${id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.detail || `Request failed with status ${response.status}`);
+      }
+
+      setMedicines((previous) => previous.filter((item) => item.id !== id));
+      setApiError("");
+    } catch (error) {
+      alert(`Could not delete medicine: ${error.message}`);
+    }
   };
 
   /* Logout */
@@ -2108,6 +2121,25 @@ function App() {
         />
 
         <div className="content-area">
+
+          {apiError && (
+            <div role="alert" style={{ padding: "12px 16px", marginBottom: "16px", borderRadius: "8px", background: "#fff1f0", color: "#9f1d1d" }}>
+              {apiError}
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                style={{ marginLeft: "12px" }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {loadingMedicines && (
+            <p role="status" style={{ padding: "8px 0" }}>
+              Loading medicine records from the database...
+            </p>
+          )}
 
           {page === "dashboard" && (
 
