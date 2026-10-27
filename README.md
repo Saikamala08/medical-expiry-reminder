@@ -92,12 +92,6 @@ Open the local URL displayed by Vite, usually `http://localhost:5173`.
 
 - Automated email and SMS expiry alerts
 - OCR-based medicine detail extraction
-- Secure backend authentication
-- Configurable expiry thresholds
-
-## Note
-
-This project is developed for academic purposes and demonstration. The current login uses demo credentials, and automated email/SMS notifications and OCR integration are not implemented.
 
 ##  Repository
 
