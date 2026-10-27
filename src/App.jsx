@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import "./App.css";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://medical-expiry-reminder.onrender.com";
 
 // Convert PostgreSQL/FastAPI field names to the names used by the existing UI.
 function fromApiMedicine(medicine) {
