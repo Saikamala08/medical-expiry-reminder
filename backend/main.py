@@ -12,18 +12,28 @@ app = FastAPI(title="Medical Expiry Reminder System")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://medical-expiry-reminder-8t0rt7g8n.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+
+
 def get_db_connection():
+    database_url = os.getenv("DATABASE_URL")
+
+    if database_url:
+        return psycopg2.connect(database_url)
+
     password = os.getenv("DB_PASSWORD")
     if not password:
         raise RuntimeError(
-            "DB_PASSWORD is not set. Set it in the same terminal before starting FastAPI."
+            "DB_PASSWORD is not set. Set it before starting FastAPI."
         )
 
     return psycopg2.connect(
@@ -33,6 +43,7 @@ def get_db_connection():
         password=password,
         port="5432",
     )
+
 
 
 def create_users_table():
