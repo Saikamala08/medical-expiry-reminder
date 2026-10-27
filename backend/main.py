@@ -15,14 +15,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://medical-expiry-reminder-8t0rt7g8n.vercel.app",
+        "https://medical-expiry-reminder-jfllnuv9m.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-
 
 def get_db_connection():
     database_url = os.getenv("DATABASE_URL")
